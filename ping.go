@@ -58,8 +58,8 @@ func readAnswer(c *icmp.PacketConn, id int, peer_from net.Addr, send_time time.T
 
 func main() {
 	var (
-		sended, recieved, seq, exit_code int
-		send_time                        time.Time
+		sended, recieved, loss, seq, exit_code int
+		send_time                              time.Time
 	)
 	id, err := strconv.Atoi(os.Args[2])
 	check_err(err)
@@ -106,6 +106,9 @@ Loop:
 	}
 	fmt.Println("")
 	fmt.Printf("--- %s ping statistics ---\n", addr)
-	fmt.Printf("%d packets transmitted, %d received, %d%% packet loss\n", sended, recieved, (sended-recieved)*100/sended)
+	if sended > 0 {
+		loss = (sended - recieved) * 100 / sended
+	}
+	fmt.Printf("%d packets transmitted, %d received, %d%% packet loss\n", sended, recieved, loss)
 	os.Exit(exit_code)
 }
