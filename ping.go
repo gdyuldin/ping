@@ -22,12 +22,27 @@ func check_err(err error) {
 	}
 }
 
-func readAnswer(c *icmp.PacketConn, send_time time.Time, reply chan int) {
-	rb := make([]byte, 1500)
-	n, peer, err := c.ReadFrom(rb)
-	check_err(err)
-	hdr, err := icmp.ParseIPv4Header(rb)
-	check_err(err)
+func readAnswer(c *icmp.PacketConn, id int, peer_from net.Addr, send_time time.Time, reply chan int) {
+	var (
+		n    int
+		peer net.Addr
+		err  error
+		hdr  *ipv4.Header
+		rb   []byte
+	)
+	for {
+		rb = make([]byte, 1500)
+		n, peer, err = c.ReadFrom(rb)
+		check_err(err)
+		if peer.String() != peer_from.String() {
+			continue
+		}
+		hdr, err = icmp.ParseIPv4Header(rb)
+		check_err(err)
+		if hdr.ID == id {
+			break
+		}
+	}
 	rm, err := icmp.ParseMessage(ProtocolICMP, rb[:n])
 	check_err(err)
 	duration := time.Now().Sub(send_time)
@@ -81,7 +96,7 @@ Loop:
 			check_err(err)
 			send_time = time.Now()
 			sended++
-			go readAnswer(c, send_time, reply_chan)
+			go readAnswer(c, id, addr, send_time, reply_chan)
 		case success_count := <-reply_chan:
 			recieved += success_count
 		}
